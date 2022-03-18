@@ -8,16 +8,14 @@ import {
 import {
   createAddress,
   TestTransactionEvent,
-  encodeParameters,
   MockEthersProvider,
 } from "forta-agent-tools";
 import { provideHandleTransaction } from "./agent";
 import { BigNumber } from "ethers";
 import { Interface } from "@ethersproject/abi";
 import util from "./utils";
-import { leftPad } from "web3-utils";
 
-const testThreshold: BigNumber = BigNumber.from(100); // $100
+const testThreshold: BigNumber = BigNumber.from(100);
 const testBenqiEventIFace: Interface = new Interface([
   util.DELEGATE_CHANGED_EVENT,
 ]);
@@ -125,27 +123,24 @@ describe("Large stake deposits", () => {
     expect(findings).toStrictEqual([]);
   });
   it("should only return findings if value is equal to or greater than threshold", async () => {
-    const TEST_DATA: string[][]  = [
+    const TEST_DATA: string[][] = [
       [
         createAddress("0xabc238"),
         createAddress("0xabc872"),
         createAddress("0xdef914"),
         BigNumber.from(1).toString(),
-        
       ],
       [
         createAddress("0xabc168"),
         createAddress("0xabc642"),
         createAddress("0xdef454"),
         BigNumber.from(100).toString(),
-        
       ],
       [
         createAddress("0xabc268"),
         createAddress("0xabc842"),
         createAddress("0xdef954"),
         BigNumber.from(500).toString(),
-        
       ],
     ];
     const txEvent: TestTransactionEvent = new TestTransactionEvent().setBlock(
@@ -153,7 +148,6 @@ describe("Large stake deposits", () => {
     );
 
     for (let [delegator, fromDelegate, toDelegate, balance] of TEST_DATA) {
-      console.log(delegator);
       const { data, topics } = testBenqiEventIFace.encodeEventLog(
         testBenqiEventIFace.getEvent("DelegateChanged"),
         [delegator, fromDelegate, toDelegate]
@@ -174,6 +168,57 @@ describe("Large stake deposits", () => {
     }
     const findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([
+      createFinding(TEST_DATA[1]),
+      createFinding(TEST_DATA[2]),
+    ]);
+  });
+  it("should return multiple findings", async () => {
+    const TEST_DATA: string[][] = [
+      [
+        createAddress("0xabc238"),
+        createAddress("0xabc872"),
+        createAddress("0xdef914"),
+        BigNumber.from(200).toString(),
+      ],
+      [
+        createAddress("0xabc168"),
+        createAddress("0xabc642"),
+        createAddress("0xdef454"),
+        BigNumber.from(100).toString(),
+      ],
+      [
+        createAddress("0xabc268"),
+        createAddress("0xabc842"),
+        createAddress("0xdef954"),
+        BigNumber.from(500).toString(),
+      ],
+    ];
+    const txEvent: TestTransactionEvent = new TestTransactionEvent().setBlock(
+      50
+    );
+
+    for (let [delegator, fromDelegate, toDelegate, balance] of TEST_DATA) {
+      const { data, topics } = testBenqiEventIFace.encodeEventLog(
+        testBenqiEventIFace.getEvent("DelegateChanged"),
+        [delegator, fromDelegate, toDelegate]
+      );
+
+      mockProvider.addCallTo(
+        testBenqiToken,
+        50,
+        testBenqiFunctionIFace,
+        "balanceOf",
+        {
+          inputs: [delegator],
+          outputs: [balance],
+        }
+      );
+
+      txEvent.addAnonymousEventLog(testBenqiToken, data, ...topics);
+    }
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      createFinding(TEST_DATA[0]),
       createFinding(TEST_DATA[1]),
       createFinding(TEST_DATA[2]),
     ]);
