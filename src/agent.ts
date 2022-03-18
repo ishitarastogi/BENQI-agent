@@ -18,7 +18,7 @@ export const createFinding = (
   delegator: string,
   fromDelegate: string,
   toDelegate: string,
-  balance: BigNumber
+  balance: any
 ): Finding => {
   return Finding.fromObject({
     name: "Delegations Monitor",

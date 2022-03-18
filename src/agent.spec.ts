@@ -18,8 +18,12 @@ import util from "./utils";
 import { leftPad } from "web3-utils";
 
 const testThreshold: BigNumber = BigNumber.from(100); // $100
-const testBenqiEventIFace: Interface = new Interface([util.DELEGATE_CHANGED_EVENT]);
-const testBenqiFunctionIFace: Interface = new Interface(util.BALANCE_OF_FUNCTION);
+const testBenqiEventIFace: Interface = new Interface([
+  util.DELEGATE_CHANGED_EVENT,
+]);
+const testBenqiFunctionIFace: Interface = new Interface(
+  util.BALANCE_OF_FUNCTION
+);
 const testBenqiToken: string = createAddress("0xdef1");
 
 const createFinding = ([
@@ -55,7 +59,6 @@ describe("Large stake deposits", () => {
     );
   });
 
-  
   beforeEach(() => mockProvider.clear());
 
   it("should return 0 findings in empty transactions", async () => {
@@ -64,44 +67,113 @@ describe("Large stake deposits", () => {
     const findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([]);
   });
-  // it("should return no Findings due to incorrect event signature", async () => {
-
-  // })
-  it("should return findings", async () => {
-    const testDelegator:string=createAddress("0xabc268");
-    const testFromDelegate:string=createAddress("0xabc842");
-    const testToDelegate:string=createAddress("0xdef954");
+  it("should return no Findings due to incorrect event signature", async () => {
+    const testDelegator: string = createAddress("0xabc268");
+    const testFromDelegate: string = createAddress("0xabc842");
+    const testToDelegate: string = createAddress("0xdef954");
 
     const { data, topics } = testBenqiEventIFace.encodeEventLog(
       testBenqiEventIFace.getEvent("DelegateChanged"),
-      [
-        testDelegator,
-        testFromDelegate,
-        testToDelegate
-      ]
+      [testDelegator, testFromDelegate, testToDelegate]
     );
-    console.log("topics",topics);
-  mockProvider.addCallTo(testBenqiToken, 50, testBenqiFunctionIFace, "balanceOf", {
-      inputs: [testDelegator],
-      outputs: [100],
-    });
+    mockProvider.addCallTo(
+      testBenqiToken,
+      50,
+      testBenqiFunctionIFace,
+      "balanceOf",
+      {
+        inputs: [testDelegator],
+        outputs: [100],
+      }
+    );
+    const badWorkSig: string = "wrong()";
 
     const txEvent: TransactionEvent = new TestTransactionEvent()
       .setBlock(50)
-      .addAnonymousEventLog(testBenqiToken,data,  ...topics);
-      const findings = await handleTransaction(txEvent);
-console.log(findings)
-      expect(findings).toStrictEqual([
-        createFinding(
-          [testDelegator,
-          testFromDelegate,
-          testToDelegate,
-          "100"]
-        )
+      .addEventLog(badWorkSig, testBenqiToken, data, ...topics.slice(1));
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([]);
+  });
 
-      ]);
-  })
-  // it("should only return findings if value is equal to or greater than threshold", async () => {
+  it("should return no findings for incorrect address", async () => {
+    const wrongBenqiToken: string = createAddress("0xd34d");
 
-  // })
+    const testDelegator: string = createAddress("0xabc268");
+    const testFromDelegate: string = createAddress("0xabc842");
+    const testToDelegate: string = createAddress("0xdef954");
+
+    const { data, topics } = testBenqiEventIFace.encodeEventLog(
+      testBenqiEventIFace.getEvent("DelegateChanged"),
+      [testDelegator, testFromDelegate, testToDelegate]
+    );
+    mockProvider.addCallTo(
+      wrongBenqiToken,
+      50,
+      testBenqiFunctionIFace,
+      "balanceOf",
+      {
+        inputs: [testDelegator],
+        outputs: [100],
+      }
+    );
+
+    const txEvent: TransactionEvent = new TestTransactionEvent()
+      .setBlock(50)
+      .addAnonymousEventLog(wrongBenqiToken, data, ...topics);
+    const findings = await handleTransaction(txEvent);
+
+    expect(findings).toStrictEqual([]);
+  });
+  it("should only return findings if value is equal to or greater than threshold", async () => {
+    const TEST_DATA: string[][] = [
+      [
+        createAddress("0xabc268"),
+        createAddress("0xabc842"),
+        createAddress("0xdef954"),
+        BigNumber.from(1).toString(),
+      ],
+      [
+        createAddress("0xabc268"),
+        createAddress("0xabc842"),
+        createAddress("0xdef954"),
+        BigNumber.from(10).toString(),
+      ],
+      [
+        createAddress("0xabc268"),
+        createAddress("0xabc842"),
+        createAddress("0xdef954"),
+        BigNumber.from(500).toString(),
+      ],
+    ];
+    const txEvent: TestTransactionEvent = new TestTransactionEvent().setBlock(
+      55
+    );
+
+    for (let [delegator, fromDelegate, toDelegate, balance] of TEST_DATA) {
+      console.log(delegator);
+      const { data, topics } = testBenqiEventIFace.encodeEventLog(
+        testBenqiEventIFace.getEvent("DelegateChanged"),
+        [delegator, fromDelegate, toDelegate]
+      );
+
+      mockProvider.addCallTo(
+        testBenqiToken,
+        50,
+        testBenqiFunctionIFace,
+        "balanceOf",
+        {
+          inputs: [delegator],
+          outputs: [balance],
+        }
+      );
+
+      txEvent.addAnonymousEventLog(testBenqiToken, data, ...topics);
+      console.log(txEvent);
+    }
+    const findings = await handleTransaction(txEvent);
+    expect(findings).toStrictEqual([
+      createFinding(TEST_DATA[1]),
+      createFinding(TEST_DATA[2]),
+    ]);
+  });
 });
