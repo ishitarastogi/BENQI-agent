@@ -125,28 +125,31 @@ describe("Large stake deposits", () => {
     expect(findings).toStrictEqual([]);
   });
   it("should only return findings if value is equal to or greater than threshold", async () => {
-    const TEST_DATA: string[][] = [
+    const TEST_DATA: string[][]  = [
       [
-        createAddress("0xabc268"),
-        createAddress("0xabc842"),
-        createAddress("0xdef954"),
+        createAddress("0xabc238"),
+        createAddress("0xabc872"),
+        createAddress("0xdef914"),
         BigNumber.from(1).toString(),
+        
       ],
       [
-        createAddress("0xabc268"),
-        createAddress("0xabc842"),
-        createAddress("0xdef954"),
-        BigNumber.from(10).toString(),
+        createAddress("0xabc168"),
+        createAddress("0xabc642"),
+        createAddress("0xdef454"),
+        BigNumber.from(100).toString(),
+        
       ],
       [
         createAddress("0xabc268"),
         createAddress("0xabc842"),
         createAddress("0xdef954"),
         BigNumber.from(500).toString(),
+        
       ],
     ];
     const txEvent: TestTransactionEvent = new TestTransactionEvent().setBlock(
-      55
+      50
     );
 
     for (let [delegator, fromDelegate, toDelegate, balance] of TEST_DATA) {
@@ -168,7 +171,6 @@ describe("Large stake deposits", () => {
       );
 
       txEvent.addAnonymousEventLog(testBenqiToken, data, ...topics);
-      console.log(txEvent);
     }
     const findings = await handleTransaction(txEvent);
     expect(findings).toStrictEqual([
