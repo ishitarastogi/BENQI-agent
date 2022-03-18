@@ -8,7 +8,6 @@ import {
   HandleTransaction,
 } from "forta-agent";
 import { BigNumber, utils, providers } from "ethers";
-
 import util from "./utils";
 
 const Qi_CONTRACT: string = "0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5";
@@ -39,7 +38,6 @@ export const createFinding = (
 export function provideHandleTransaction(
   amountThreshold: BigNumber,
   QiToken: string,
-
   provider: providers.Provider
 ): HandleTransaction {
   const BenQiContract = new ethers.Contract(
@@ -74,7 +72,6 @@ export function provideHandleTransaction(
         }
       })
     );
-
     return findings;
   };
 }
