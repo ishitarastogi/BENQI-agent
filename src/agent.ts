@@ -5,6 +5,7 @@ import {
   FindingType,
   getEthersProvider,
   ethers,
+  HandleTransaction,
 } from "forta-agent";
 import { BigNumber, utils, providers } from "ethers";
 
@@ -35,12 +36,12 @@ const createFinding = (
   });
 };
 
-export function provideHandleTransaction(
+export function provideHandleTransaction  (
   amountThreshold: BigNumber,
   QiToken: string,
 
   provider: providers.Provider
-) {
+): HandleTransaction  {
   const BenQiContract = new ethers.Contract(
     QiToken,
     util.BALANCE_OF_FUNCTION,
