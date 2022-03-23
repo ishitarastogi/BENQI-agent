@@ -9,7 +9,7 @@ import {
   createAddress,
   TestTransactionEvent,
   MockEthersProvider,
-} from "forta-agent-tools";
+} from "forta-agent-tools/lib/tests";
 import { provideHandleTransaction } from "./agent";
 import { BigNumber } from "ethers";
 import { Interface } from "@ethersproject/abi";
@@ -31,7 +31,7 @@ const createFinding = ([
   balance,
 ]: string[]) =>
   Finding.fromObject({
-    name: "Delegations Monitor",
+    name: "Large votes delegation detected",
     description: "Detect user with a huge balance delegating their votes",
     alertId: "BENQI-2",
     severity: FindingSeverity.Info,
@@ -44,7 +44,7 @@ const createFinding = ([
       balance,
     },
   });
-describe("Large stake deposits", () => {
+describe("User with huge balance delegating their votes", () => {
   let handleTransaction: HandleTransaction;
 
   const mockProvider = new MockEthersProvider();
@@ -175,21 +175,21 @@ describe("Large stake deposits", () => {
   it("should return multiple findings", async () => {
     const TEST_DATA: string[][] = [
       [
-        createAddress("0xabc238"),
-        createAddress("0xabc872"),
-        createAddress("0xdef914"),
-        BigNumber.from(200).toString(),
-      ],
-      [
         createAddress("0xabc168"),
-        createAddress("0xabc642"),
-        createAddress("0xdef454"),
+        createAddress("0xabc942"),
+        createAddress("0xdef924"),
         BigNumber.from(100).toString(),
       ],
       [
-        createAddress("0xabc268"),
+        createAddress("0xabc348"),
         createAddress("0xabc842"),
-        createAddress("0xdef954"),
+        createAddress("0xdef952"),
+        BigNumber.from(200).toString(),
+      ],
+      [
+        createAddress("0xabc248"),
+        createAddress("0xabc812"),
+        createAddress("0xdef952"),
         BigNumber.from(500).toString(),
       ],
     ];
