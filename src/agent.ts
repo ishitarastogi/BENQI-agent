@@ -7,14 +7,12 @@ import {
   ethers,
   HandleTransaction,
 } from "forta-agent";
-import { BigNumber, providers } from "ethers";
+import { BigNumber, providers, utils } from "ethers";
 import LRU from "lru-cache";
-
 import util from "./utils";
 
 const QI_CONTRACT: string = "0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5";
-const AMOUNT_THRESHOLD: BigNumber = BigNumber.from(10 ** 6).mul(10**18); 
-
+const AMOUNT_THRESHOLD: BigNumber = utils.parseEther("10000000.0");
 export const createFinding = (
   delegator: string,
   fromDelegate: string,
@@ -40,10 +38,11 @@ export const createFinding = (
 export function provideHandleTransaction(
   amountThreshold: BigNumber,
   QiToken: string,
-
   provider: providers.Provider
 ): HandleTransaction {
-  const cache: LRU<string,BigNumber> = new LRU<string, BigNumber>({ max: 10000 });
+  const cache: LRU<string, BigNumber> = new LRU<string, BigNumber>({
+    max: 10000,
+  });
 
   const BenqiContract = new ethers.Contract(
     QiToken,
@@ -58,21 +57,27 @@ export function provideHandleTransaction(
     );
     await Promise.all(
       delegateChangedEvents.map(async (event) => {
-        const delegator: string= event.args.delegator;
-        const blockNumber = txEvent.blockNumber;
+        const delegator: string = event.args.delegator;
 
-        const balanceOfDelegator: BigNumber= await BenqiContract.balanceOf(delegator, {
-          blockTag: txEvent.blockNumber,
-        });
+        const blockNumber: number = txEvent.blockNumber;
         const key: string = `${delegator}-${blockNumber}`;
-        cache.set(key, balanceOfDelegator);
- 
+
+        let balanceOfDelegator: BigNumber;
+        if (cache.has(key)) {
+          balanceOfDelegator = cache.get(key) as BigNumber;
+        } else {
+          balanceOfDelegator = await BenqiContract.balanceOf(delegator, {
+            blockTag: txEvent.blockNumber,
+          });
+          cache.set(key, balanceOfDelegator);
+        }
+
         if (balanceOfDelegator.gte(amountThreshold)) {
           const newFinding: Finding = createFinding(
             event.args.delegator,
             event.args.fromDelegate,
             event.args.toDelegate,
-            cache.get(delegator)
+            balanceOfDelegator
           );
           findings.push(newFinding);
         }
